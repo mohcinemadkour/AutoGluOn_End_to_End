@@ -1,5 +1,5 @@
 # ============================================================================
-# CHURN PREDICTION API - Python Dependencies
+# CHURN PREDICTION - Python Dependencies
 # ============================================================================
 
 # Core ML Framework
@@ -10,9 +10,14 @@ fastapi>=0.104.0
 uvicorn[standard]>=0.24.0
 pydantic>=2.0.0
 
+# Streamlit Dashboard
+streamlit>=1.28.0
+plotly>=5.17.0
+
 # Data Processing
 pandas>=2.0.0
 numpy>=1.24.0
+scikit-learn>=1.3.0
 
 # Utilities
 python-multipart>=0.0.6  # For file uploads if needed
