@@ -11,7 +11,7 @@ import json
 import logging
 from pathlib import Path
 
-from ..data.validators import DataValidator, MissingValueHandler
+from data.validators import DataValidator, MissingValueHandler
 
 logger = logging.getLogger(__name__)
 
@@ -136,8 +136,25 @@ class DataQualityMonitor:
         filename = f"{dataset_name}_metrics_{timestamp}.json"
         filepath = self.metrics_dir / filename
         
+        # Convert numpy types to native Python types for JSON serialization
+        def convert_numpy_types(obj):
+            if isinstance(obj, dict):
+                return {k: convert_numpy_types(v) for k, v in obj.items()}
+            elif isinstance(obj, list):
+                return [convert_numpy_types(item) for item in obj]
+            elif isinstance(obj, (np.integer, np.int64, np.int32)):
+                return int(obj)
+            elif isinstance(obj, (np.floating, np.float64, np.float32)):
+                return float(obj)
+            elif isinstance(obj, np.ndarray):
+                return obj.tolist()
+            else:
+                return obj
+        
+        metrics_serializable = convert_numpy_types(metrics)
+        
         with open(filepath, 'w') as f:
-            json.dump(metrics, f, indent=2)
+            json.dump(metrics_serializable, f, indent=2)
         
         logger.info(f"Metrics saved to {filepath}")
     

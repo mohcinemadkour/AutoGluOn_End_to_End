@@ -129,7 +129,7 @@ class DataRefreshJob:
                 # Generate and save report
                 report = self.monitor.generate_quality_report(df, dataset_name)
                 report_file = self.output_dir / f"{dataset_name}_quality_report_{datetime.now().strftime('%Y%m%d_%H%M%S')}.txt"
-                with open(report_file, 'w') as f:
+                with open(report_file, 'w', encoding='utf-8') as f:
                     f.write(report)
                 logger.info(f"✅ Quality report saved to {report_file}")
             

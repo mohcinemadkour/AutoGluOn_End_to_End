@@ -90,13 +90,70 @@ def load_model():
 # ============================================================================
 # LOAD OR GENERATE SAMPLE DATA
 # ============================================================================
-@st.cache_data
+@st.cache_data(ttl=3600)  # Cache for 1 hour
 def load_customer_data():
     """
-    Load customer data for predictions.
-    In production, this would connect to your customer database.
-    For demo, we'll generate synthetic data.
+    Load customer data from SingleStore database.
+    Falls back to synthetic data if database is unavailable.
     """
+    try:
+        # Try to load from SingleStore
+        from data import extract_customers, DataValidator
+        
+        st.info("📥 Loading data from SingleStore database...")
+        df = extract_customers(limit=None)  # Load all customers
+        
+        # Validate data quality
+        validator = DataValidator()
+        quality_score = validator.get_data_quality_score(df)
+        
+        # Show data freshness in sidebar
+        if 'extracted_at' in df.columns:
+            latest = pd.to_datetime(df['extracted_at']).max()
+            hours_old = (datetime.now() - latest).total_seconds() / 3600
+            
+            if hours_old < 1:
+                st.sidebar.success(f"✅ Data is fresh (updated {hours_old*60:.0f} minutes ago)")
+            elif hours_old < 24:
+                st.sidebar.info(f"ℹ️  Data is {hours_old:.1f} hours old")
+            else:
+                st.sidebar.warning(f"⚠️  Data is {hours_old/24:.1f} days old")
+        
+        # Show quality metrics in sidebar
+        st.sidebar.metric(
+            "Data Quality",
+            f"{quality_score:.0f}/100",
+            help="Overall data quality score from validation pipeline"
+        )
+        
+        if quality_score >= 90:
+            st.sidebar.success("Excellent quality")
+        elif quality_score >= 70:
+            st.sidebar.info("Good quality")
+        else:
+            st.sidebar.warning("Quality issues detected")
+        
+        st.success(f"✅ Loaded {len(df)} customers from SingleStore")
+        
+        # Add derived fields for dashboard
+        if 'signup_date' in df.columns:
+            df['signup_date'] = pd.to_datetime(df['signup_date'])
+        if 'last_contact' in df.columns:
+            df['last_contact'] = pd.to_datetime(df['last_contact'])
+        
+        return df
+        
+    except ImportError:
+        st.warning("⚠️  Data module not available. Using local file or synthetic data.")
+        # Fall back to local file or synthetic data
+        return load_synthetic_data()
+    except Exception as e:
+        st.error(f"❌ Error loading from SingleStore: {str(e)}")
+        st.info("Falling back to synthetic data for demo...")
+        return load_synthetic_data()
+
+def load_synthetic_data():
+    """Generate synthetic data for demo purposes"""
     try:
         # Try to load from file if exists
         if Path("customer_data.csv").exists():
@@ -134,6 +191,36 @@ def load_customer_data():
         return pd.DataFrame()
 
 # ============================================================================
+# DATA TRANSFORMATION
+# ============================================================================
+def transform_singlestore_data(df):
+    """Transform SingleStore data format to match model expectations"""
+    df_transformed = df.copy()
+    
+    # Map contract_type to contract_duration if needed
+    if 'contract_type' in df_transformed.columns and 'contract_duration' not in df_transformed.columns:
+        contract_mapping = {
+            'month-to-month': 'Monthly',
+            'one year': 'Yearly',
+            'two year': 'Two-Year'
+        }
+        df_transformed['contract_duration'] = df_transformed['contract_type'].map(contract_mapping)
+        # Fill any unmapped values
+        df_transformed['contract_duration'] = df_transformed['contract_duration'].fillna('Monthly')
+    
+    # Map payment methods if needed
+    if 'payment_method' in df_transformed.columns:
+        payment_mapping = {
+            'electronic check': 'Electronic',
+            'mailed check': 'Mailed Check',
+            'bank transfer': 'Bank Transfer',
+            'credit card': 'Credit Card'
+        }
+        df_transformed['payment_method'] = df_transformed['payment_method'].replace(payment_mapping)
+    
+    return df_transformed
+
+# ============================================================================
 # PREDICTION FUNCTIONS
 # ============================================================================
 def get_risk_level(probability):
@@ -147,6 +234,9 @@ def get_risk_level(probability):
 
 def predict_churn_batch(predictor, customer_data):
     """Make batch predictions for all customers"""
+    # Transform data if coming from SingleStore
+    customer_data = transform_singlestore_data(customer_data)
+    
     # Prepare features (exclude customer_id, customer_name, signup_date, last_contact)
     feature_cols = ['tenure_months', 'monthly_charges', 'total_charges', 'service_calls',
                     'contract_duration', 'paperless_billing', 'tech_support', 'online_backup',

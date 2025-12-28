@@ -7,11 +7,15 @@ import os
 from typing import Optional, Dict, Any
 from contextlib import contextmanager
 import logging
-from sqlalchemy import create_engine, pool
+from sqlalchemy import create_engine, pool, text
 from sqlalchemy.orm import sessionmaker, Session
 from sqlalchemy.engine import Engine
 import pandas as pd
 from datetime import datetime
+from dotenv import load_dotenv
+
+# Load environment variables from .env file
+load_dotenv()
 
 # Setup logging
 logging.basicConfig(level=logging.INFO)
@@ -148,7 +152,7 @@ class SingleStoreConnection:
         """
         try:
             with self.engine.connect() as conn:
-                result = conn.execute(query, params or {})
+                result = conn.execute(text(query), params or {})
                 conn.commit()
                 logger.info(f"Write query executed, {result.rowcount} rows affected")
                 return result.rowcount
@@ -165,7 +169,7 @@ class SingleStoreConnection:
         """
         try:
             with self.engine.connect() as conn:
-                result = conn.execute("SELECT 1")
+                result = conn.execute(text("SELECT 1"))
                 result.fetchone()
                 logger.info("Database connection test successful")
                 return True

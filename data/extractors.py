@@ -117,8 +117,8 @@ class CustomerDataExtractor:
         
         -- Contract information
         LEFT JOIN contracts ct ON c.customer_id = ct.customer_id
-            AND ct.contract_start_date <= %(as_of_date)s
-            AND (ct.contract_end_date IS NULL OR ct.contract_end_date >= %(as_of_date)s)
+            AND ct.start_date <= %(as_of_date)s
+            AND (ct.end_date IS NULL OR ct.end_date >= %(as_of_date)s)
         
         -- Feature scores
         LEFT JOIN customer_features f ON c.customer_id = f.customer_id
