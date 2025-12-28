@@ -131,32 +131,116 @@ The dashboard provides personalized recommendations based on customer characteri
 
 ---
 
+## � How the Dashboard Uses Data
+
+### Complete Data Flow (SingleStore Integration)
+
+The dashboard follows a **5-stage pipeline** from database to visualization:
+
+#### **Stage 1: Data Loading (Cached)**
+```python
+@st.cache_data(ttl=3600)  # Cache for 1 hour
+def load_customer_data():
+    df = extract_customers(limit=None)  # Pulls ALL active customers
+    # Returns 847 customers with 6-table JOIN
+```
+- **Trigger**: Page load or manual refresh button
+- **Frequency**: Cached 1 hour, then reloads from SingleStore
+- **Query**: 6-table JOIN (customers + contracts + billing + usage + demographics + support)
+- **Data Quality**: Validates and scores data (80/100 target)
+
+#### **Stage 2: Data Transformation**
+```python
+def transform_singlestore_data(df):
+    # Maps database format → model format
+    'month-to-month' → 'Monthly'
+    'electronic check' → 'Electronic'
+    # Returns transformed DataFrame ready for model
+```
+- **Purpose**: Converts SingleStore naming conventions → AutoGluon model expectations
+- **Key Mappings**: Contract types, payment methods, boolean flags
+- **Validation**: Ensures all required features present
+
+#### **Stage 3: Batch Prediction**
+```python
+def predict_churn_batch(predictor, df):
+    # 1. Select 15 features (tenure, monthly_charges, etc.)
+    # 2. Call model: predictor.predict_proba(features)
+    # 3. Assign risk levels:
+    #    ≥0.7 → HIGH (Red)
+    #    0.4-0.7 → MEDIUM (Yellow)
+    #    <0.4 → LOW (Green)
+```
+- **Input**: 847 customers × 15 features
+- **Output**: 847 predictions with probability + risk level
+- **Model**: AutoGluon WeightedEnsemble (CatBoost, LightGBM, XGBoost, Neural Networks)
+
+#### **Stage 4: Metrics Calculation**
+```python
+total_customers = len(predictions_df)  # 847
+high_risk = len(predictions_df[predictions_df['risk_level'] == 'HIGH'])
+avg_churn_prob = predictions_df['churn_probability'].mean()
+```
+- **Computes**: Total customers, risk breakdowns, percentages, averages
+- **Displays**: 5-column metric dashboard at top of page
+- **Updates**: Real-time based on filters
+
+#### **Stage 5: Visualization & Export**
+- **Tab 1**: Risk pie chart + probability histogram
+- **Tab 2**: High-risk table sorted by probability + retention recommendations
+- **Tab 3**: Analytics (tenure trends, contract analysis, charges distribution)
+- **Tab 4**: Campaign planning with downloadable CSV
+
+### Exact Data Path
+
+```
+SingleStore DB (svc-c12b00ec-6ce2-4c42-8755-f91b860c86f9-dml.aws-oregon-4.svc.singlestore.com)
+    ↓
+extract_customers() → 6-table JOIN → 847 rows × 25 columns
+    ↓
+DataValidator → Quality scoring (completeness, consistency, freshness)
+    ↓
+transform_singlestore_data() → Format conversion (database → model)
+    ↓
+predict_churn_batch() → 847 × 15 features → AutoGluon → 847 predictions
+    ↓
+Apply filters (risk_level, date_range, threshold)
+    ↓
+Display in 4 tabs with Plotly charts + export options
+```
+
+### Data Freshness Indicators
+
+The dashboard sidebar shows real-time data quality:
+- 🟢 **Fresh**: Data < 1 hour old
+- 🟡 **Moderate**: Data 1-24 hours old  
+- 🔴 **Stale**: Data > 24 hours old
+
+### Important Notes
+
+- **Read-Only**: Dashboard never modifies SingleStore data
+- **In-Memory**: All transformations happen in RAM before passing to model
+- **Automated Refresh**: Background job updates data hourly/daily (configurable)
+- **Version Tracking**: Data versioning maintained in `data/refreshed/customer_data_versions.json`
+
+---
+
 ## 🔧 Customization
 
 ### Connecting Your Data
 
-Replace the sample data generation in `load_customer_data()` with your database connection:
+**Current Setup**: Dashboard is already connected to SingleStore cloud database. To change connection:
 
 ```python
-@st.cache_data
-def load_customer_data():
-    """Load from your database"""
-    import sqlalchemy as sa
-    
-    engine = sa.create_engine('your_database_url')
-    query = """
-        SELECT 
-            customer_id,
-            customer_name,
-            tenure_months,
-            monthly_charges,
-            -- ... other features
-        FROM customers
-        WHERE status = 'active'
-    """
-    df = pd.read_sql(query, engine)
-    return df
+# Update .env file with your database credentials
+SINGLESTORE_HOST=your-host.svc.singlestore.com
+SINGLESTORE_PORT=3306
+SINGLESTORE_USER=your_user
+SINGLESTORE_PASSWORD=your_password
+SINGLESTORE_DATABASE=your_database
 ```
+
+**Connection is managed by**: `data/database.py` with connection pooling and automatic reconnection.
 
 ### Adjusting Cost Assumptions
 
