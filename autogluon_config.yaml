@@ -52,15 +52,275 @@ fit_args:
   num_gpus: 'auto'
 
 hyperparameters:
-  GBM: {}
-  NN_TORCH: {}
-  CAT: {}
-  RF:
+  # ============================================================================
+  # GRADIENT BOOSTING MODELS
+  # ============================================================================
+  
+  # Gradient Boosted Trees (LightGBM) - HPO Search Spaces
+  GBM:
+    num_boost_round: 100
+    num_leaves:
+      space_type: 'Int'
+      lower: 20
+      upper: 50
+      default: 31
+    learning_rate:
+      space_type: 'Real'
+      lower: 0.01
+      upper: 0.2
+      default: 0.1
+      log: true
+    feature_fraction:
+      space_type: 'Real'
+      lower: 0.7
+      upper: 1.0
+      default: 0.9
+    min_data_in_leaf:
+      space_type: 'Int'
+      lower: 10
+      upper: 30
+      default: 20
+    bagging_fraction:
+      space_type: 'Real'
+      lower: 0.7
+      upper: 1.0
+      default: 0.9
+    bagging_freq:
+      space_type: 'Int'
+      lower: 0
+      upper: 7
+      default: 5
+  
+  # Extreme Gradient Boosting (XGBoost) - HPO Search Spaces
+  XGB:
     n_estimators: 100
-    ag_args:
-      name_suffix: "_Large"
-  XT: {}
-  FASTAI: {}
+    max_depth:
+      space_type: 'Int'
+      lower: 4
+      upper: 10
+      default: 6
+    eta:
+      space_type: 'Real'
+      lower: 0.01
+      upper: 0.3
+      default: 0.1
+      log: true
+    subsample:
+      space_type: 'Real'
+      lower: 0.6
+      upper: 1.0
+      default: 0.8
+    colsample_bytree:
+      space_type: 'Real'
+      lower: 0.6
+      upper: 1.0
+      default: 0.8
+    min_child_weight:
+      space_type: 'Int'
+      lower: 1
+      upper: 10
+      default: 1
+    gamma:
+      space_type: 'Real'
+      lower: 0.0
+      upper: 5.0
+      default: 0.0
+  
+  # CatBoost - HPO Search Spaces
+  CAT:
+    iterations: 100
+    learning_rate:
+      space_type: 'Real'
+      lower: 0.01
+      upper: 0.3
+      default: 0.1
+      log: true
+    depth:
+      space_type: 'Int'
+      lower: 4
+      upper: 10
+      default: 6
+    l2_leaf_reg:
+      space_type: 'Real'
+      lower: 1.0
+      upper: 10.0
+      default: 3.0
+    bagging_temperature:
+      space_type: 'Real'
+      lower: 0.0
+      upper: 1.0
+      default: 0.5
+    random_strength:
+      space_type: 'Real'
+      lower: 0.0
+      upper: 10.0
+      default: 1.0
+  
+  # ============================================================================
+  # TREE ENSEMBLE MODELS
+  # ============================================================================
+  
+  # Random Forest - HPO Search Spaces
+  RF:
+    n_estimators:
+      space_type: 'Int'
+      lower: 100
+      upper: 300
+      default: 200
+    max_depth:
+      space_type: 'Int'
+      lower: 5
+      upper: 15
+      default: 10
+    criterion:
+      space_type: 'Categorical'
+      choices: ['gini', 'entropy']
+    min_samples_split:
+      space_type: 'Int'
+      lower: 2
+      upper: 10
+      default: 2
+    min_samples_leaf:
+      space_type: 'Int'
+      lower: 1
+      upper: 5
+      default: 1
+    max_features:
+      space_type: 'Categorical'
+      choices: ['sqrt', 'log2', 0.5, 0.8]
+  
+  # Extra Trees - HPO Search Spaces
+  XT:
+    n_estimators:
+      space_type: 'Int'
+      lower: 100
+      upper: 300
+      default: 200
+    max_depth:
+      space_type: 'Int'
+      lower: 5
+      upper: 15
+      default: 10
+    criterion:
+      space_type: 'Categorical'
+      choices: ['gini', 'entropy']
+    min_samples_split:
+      space_type: 'Int'
+      lower: 2
+      upper: 10
+      default: 2
+    min_samples_leaf:
+      space_type: 'Int'
+      lower: 1
+      upper: 5
+      default: 1
+    max_features:
+      space_type: 'Categorical'
+      choices: ['sqrt', 'log2', 0.5]
+  
+  # ============================================================================
+  # NEURAL NETWORK MODELS
+  # ============================================================================
+  
+  # Neural Network (PyTorch) - HPO Search Spaces
+  NN_TORCH:
+    num_epochs: 10
+    learning_rate:
+      space_type: 'Real'
+      lower: 0.0001
+      upper: 0.01
+      default: 0.0005
+      log: true
+    activation:
+      space_type: 'Categorical'
+      choices: ['relu', 'elu', 'tanh']
+    dropout_prob:
+      space_type: 'Real'
+      lower: 0.0
+      upper: 0.5
+      default: 0.1
+    weight_decay:
+      space_type: 'Real'
+      lower: 0.00001
+      upper: 0.001
+      default: 0.0001
+      log: true
+  
+  # FastAI Neural Network - HPO Search Spaces
+  FASTAI:
+    epochs: 10
+    lr:
+      space_type: 'Real'
+      lower: 0.0001
+      upper: 0.01
+      default: 0.001
+      log: true
+    emb_drop:
+      space_type: 'Real'
+      lower: 0.0
+      upper: 0.5
+      default: 0.1
+    ps:
+      space_type: 'Real'
+      lower: 0.0
+      upper: 0.5
+      default: 0.1
+  
+  # ============================================================================
+  # DISTANCE-BASED MODELS
+  # ============================================================================
+  
+  # K-Nearest Neighbors - HPO Search Spaces
+  KNN:
+    n_neighbors:
+      space_type: 'Int'
+      lower: 3
+      upper: 15
+      default: 5
+    weights:
+      space_type: 'Categorical'
+      choices: ['uniform', 'distance']
+    p:
+      space_type: 'Int'
+      lower: 1
+      upper: 3
+      default: 2
+    leaf_size:
+      space_type: 'Int'
+      lower: 20
+      upper: 50
+      default: 30
+  
+  # ============================================================================
+  # LINEAR MODELS
+  # ============================================================================
+  
+  # Linear/Logistic Regression - HPO Search Spaces
+  LR:
+    penalty:
+      space_type: 'Categorical'
+      choices: ['l1', 'l2']
+    C:
+      space_type: 'Real'
+      lower: 0.001
+      upper: 10.0
+      default: 1.0
+      log: true
+    max_iter: 1000
+    solver:
+      space_type: 'Categorical'
+      choices: ['saga', 'liblinear']
+
+# HPO Configuration
+hyperparameter_tune_kwargs:
+  # Number of HPO trials per model type
+  num_trials: 20
+  
+  # Scheduler: 'local' for single machine, 'ray' for distributed
+  scheduler: 'local'
+  
+  # Searcher: 'auto', 'random', 'bayesopt', 'bayes'
+  searcher: 'auto'
 
 ag_args_fit:
   # Global constraints for all models.

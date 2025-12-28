@@ -1,0 +1,9 @@
+description: Best hyperparameters from HPO trials (from NeuralNetTorch\T19)
+eval_metric: average_precision
+problem_type: binary
+hyperparameters:
+  NeuralNetTorch\T19: {}
+training_config:
+  time_limit: 3600
+  presets: null
+  use_bag_holdout: true

@@ -1,0 +1,41 @@
+======================================================================
+HPO BEST MODEL REPORT
+======================================================================
+
+Generated: 2025-12-27 23:31:15
+
+BEST MODEL INFORMATION:
+  Model Name: NeuralNetTorch\T19
+  Model Type: NeuralNetTorch\T19
+  Validation Score (PR-AUC): 0.9276
+  Training Time: 2.7s
+  Prediction Time: 0.0162s
+
+BEST HYPERPARAMETERS:
+
+COMPARISON TO OTHER TRIALS:
+  1. NeuralNetTorch\T19: 0.9276
+  2. NeuralNetTorch\T11: 0.9171
+  3. NeuralNetTorch\T13: 0.9103
+  4. NeuralNetTorch\T2: 0.9091
+  5. NeuralNetTorch\T5: 0.9091
+  6. NeuralNetTorch\T14: 0.9071
+  7. NeuralNetTorch\T15: 0.9061
+  8. NeuralNetTorch\T4: 0.9061
+  9. NeuralNetTorch\T12: 0.9059
+  10. NeuralNetTorch\T20: 0.9021
+
+HOW TO USE THIS MODEL:
+  1. Load the predictor:
+     predictor = TabularPredictor.load('c:\Users\mohci\CodeProjects\AutoGluOn_End_to_End\autogluon_churn_model_hpo')
+
+  2. Make predictions with the best model:
+     predictions = predictor.predict(new_data, model='NeuralNetTorch\T19')
+
+  3. Or use the ensemble (which includes this model):
+     predictions = predictor.predict(new_data)
+
+HOW TO RETRAIN WITH THESE HYPERPARAMETERS:
+  Use the config file: retrain_config_best_hpo_20251227_233114.yaml
+  predictor = TabularPredictor(label='churn', eval_metric='average_precision')
+  predictor.fit(train_data, hyperparameters={'NeuralNetTorch\\T19': {}})

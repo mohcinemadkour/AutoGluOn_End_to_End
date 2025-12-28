@@ -1,0 +1,48 @@
+# ============================================================================
+# DOCKER COMPOSE - Easy multi-container orchestration
+# ============================================================================
+# Run with: docker-compose up
+
+version: '3.8'
+
+services:
+  # Churn Prediction API
+  churn-api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: churn-prediction-api
+    ports:
+      - "8000:8000"  # Map host:container
+    environment:
+      - MODEL_PATH=/app/autogluon_churn_model_hpo
+      - MODEL_VERSION=v1.0
+      - LOG_LEVEL=info
+    volumes:
+      # Mount model directory for easy updates without rebuild
+      - ./autogluon_churn_model_hpo:/app/autogluon_churn_model_hpo:ro
+      # Mount logs directory
+      - ./logs:/app/logs
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # Optional: Nginx reverse proxy (uncomment if needed)
+  # nginx:
+  #   image: nginx:alpine
+  #   container_name: churn-api-nginx
+  #   ports:
+  #     - "80:80"
+  #   volumes:
+  #     - ./nginx.conf:/etc/nginx/nginx.conf:ro
+  #   depends_on:
+  #     - churn-api
+  #   restart: unless-stopped
+
+networks:
+  default:
+    name: churn-prediction-network

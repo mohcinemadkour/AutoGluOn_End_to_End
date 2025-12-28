@@ -1,0 +1,58 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+.venv/
+venv/
+ENV/
+env/
+
+# AutoGluon Models (too large for git)
+autogluon_churn_model/
+autogluon_churn_model_hpo/
+autogluon_baseline/
+*.pkl
+*.ubj
+
+# Jupyter Notebook checkpoints
+.ipynb_checkpoints/
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Data files
+*.csv
+*.parquet
+
+# Images (if generated)
+*.png
+
+# Config backups
+*.bak.*
+bak.*
+*dd.yaml
+
+# Docker volumes
+.docker/
