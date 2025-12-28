@@ -79,7 +79,9 @@ def load_model():
     """Load the trained AutoGluon model"""
     try:
         model_path = "./autogluon_churn_model_hpo"
-        predictor = TabularPredictor.load(model_path)
+        # Allow loading model trained on different Python version
+        # This is generally safe for minor version differences
+        predictor = TabularPredictor.load(model_path, require_py_version_match=False)
         return predictor
     except Exception as e:
         st.error(f"Error loading model: {str(e)}")
