@@ -1,0 +1,118 @@
+# ============================================================================
+# Security Configuration
+# ============================================================================
+# Role-based access control and security settings
+
+# User Roles and Permissions
+roles:
+  admin:
+    description: "Full system access"
+    permissions:
+      - read
+      - write
+      - predict
+      - batch_predict
+      - manage_users
+      - view_audit_logs
+      - export_data
+  
+  analyst:
+    description: "Data analysis and predictions"
+    permissions:
+      - read
+      - predict
+      - batch_predict
+      - view_dashboard
+      - export_data
+  
+  viewer:
+    description: "Read-only access"
+    permissions:
+      - read
+      - predict
+      - view_dashboard
+
+# Rate Limiting (requests per time window)
+rate_limits:
+  login:
+    requests: 5
+    window: "1 minute"
+  
+  predict_single:
+    requests: 30
+    window: "1 minute"
+  
+  predict_batch:
+    requests: 10
+    window: "1 minute"
+  
+  api_general:
+    requests: 100
+    window: "1 minute"
+
+# JWT Token Settings
+jwt:
+  algorithm: "HS256"
+  access_token_expire_minutes: 30
+  refresh_token_expire_days: 7
+
+# Session Settings
+session:
+  cookie_name: "autogluon_auth_cookie"
+  cookie_expiry_days: 30
+  cookie_secure: false  # Set to true in production
+  cookie_httponly: true
+  cookie_samesite: "lax"
+
+# Password Policy
+password_policy:
+  min_length: 8
+  require_uppercase: false
+  require_lowercase: true
+  require_numbers: true
+  require_special_chars: false
+  max_age_days: 90
+
+# Audit Logging
+audit:
+  enabled: true
+  log_directory: "./logs/audit"
+  retention_days: 90
+  log_all_predictions: true
+  log_failed_attempts: true
+  log_data_access: true
+
+# Security Headers
+security_headers:
+  x_content_type_options: "nosniff"
+  x_frame_options: "DENY"
+  x_xss_protection: "1; mode=block"
+  strict_transport_security: "max-age=31536000; includeSubDomains"
+  content_security_policy: "default-src 'self'"
+
+# CORS Settings
+cors:
+  allow_origins:
+    - "http://localhost:8501"  # Streamlit dashboard
+    - "http://localhost:3000"  # React app (if any)
+  allow_methods:
+    - "GET"
+    - "POST"
+    - "PUT"
+    - "DELETE"
+  allow_headers:
+    - "Authorization"
+    - "Content-Type"
+  allow_credentials: true
+
+# IP Whitelisting (optional - leave empty to allow all)
+ip_whitelist: []
+# - "192.168.1.0/24"
+# - "10.0.0.0/8"
+
+# Feature Flags
+features:
+  enable_batch_predictions: true
+  enable_model_retraining: true
+  enable_data_export: true
+  enable_real_time_monitoring: true

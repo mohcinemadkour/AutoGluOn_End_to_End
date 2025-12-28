@@ -1,0 +1,299 @@
+{
+  "timestamp": "2025-12-28T11:54:08.415131",
+  "dataset_name": "customer_data",
+  "row_count": 847,
+  "column_count": 19,
+  "columns": [
+    "customer_id",
+    "tenure_months",
+    "monthly_charges",
+    "total_charges",
+    "service_calls",
+    "contract_duration",
+    "paperless_billing",
+    "tech_support",
+    "online_backup",
+    "payment_method",
+    "internet_service",
+    "streaming_tv",
+    "streaming_movies",
+    "device_protection",
+    "online_security",
+    "senior_citizen",
+    "customer_name",
+    "extracted_at",
+    "last_contact"
+  ],
+  "basic_stats": {
+    "memory_usage_mb": 0.3159933090209961,
+    "duplicate_rows": 0,
+    "duplicate_percentage": 0.0
+  },
+  "missing_values": {
+    "total_missing_cells": 0,
+    "columns_with_missing": 0,
+    "by_column": []
+  },
+  "data_types": {
+    "customer_id": "object",
+    "tenure_months": "int64",
+    "monthly_charges": "float64",
+    "total_charges": "float64",
+    "service_calls": "int64",
+    "contract_duration": "object",
+    "paperless_billing": "int64",
+    "tech_support": "int64",
+    "online_backup": "int64",
+    "payment_method": "object",
+    "internet_service": "int64",
+    "streaming_tv": "int64",
+    "streaming_movies": "int64",
+    "device_protection": "int64",
+    "online_security": "int64",
+    "senior_citizen": "int64",
+    "customer_name": "object",
+    "extracted_at": "datetime64[ns]",
+    "last_contact": "object"
+  },
+  "validation": {
+    "passed": false,
+    "quality_score": 80.0,
+    "total_checks": 10,
+    "failed_checks": 2,
+    "errors": [
+      {
+        "rule": "contract_duration_values",
+        "column": "contract_duration",
+        "description": "Contract duration must be Monthly, Yearly, or Two-Year",
+        "failed_count": 847,
+        "failed_percentage": 100.0,
+        "sample_values": [
+          "month-to-month",
+          "Unknown",
+          "two year",
+          "one year"
+        ]
+      },
+      {
+        "rule": "payment_method_values",
+        "column": "payment_method",
+        "description": "Payment method must be valid",
+        "failed_count": 847,
+        "failed_percentage": 100.0,
+        "sample_values": [
+          "bank transfer",
+          "electronic check",
+          "credit card",
+          "mailed check"
+        ]
+      }
+    ],
+    "warnings": []
+  },
+  "numeric_stats": {
+    "tenure_months": {
+      "mean": 17.750885478158207,
+      "median": 18.0,
+      "std": 10.14402413119861,
+      "min": 0.0,
+      "max": 35.0,
+      "q25": 9.0,
+      "q75": 27.0,
+      "outliers_count": 0
+    },
+    "monthly_charges": {
+      "mean": 70.21164108618653,
+      "median": 69.78,
+      "std": 29.06036530570144,
+      "min": 20.0,
+      "max": 119.54,
+      "q25": 46.545,
+      "q75": 95.78,
+      "outliers_count": 0
+    },
+    "total_charges": {
+      "mean": 1301.637367178276,
+      "median": 1105.33,
+      "std": 947.8032301172018,
+      "min": 2.23,
+      "max": 4173.16,
+      "q25": 509.28,
+      "q75": 1923.9,
+      "outliers_count": 3
+    },
+    "service_calls": {
+      "mean": 0.3778040141676505,
+      "median": 0.0,
+      "std": 0.7603522851139184,
+      "min": 0.0,
+      "max": 5.0,
+      "q25": 0.0,
+      "q75": 0.0,
+      "outliers_count": 203
+    },
+    "paperless_billing": {
+      "mean": 0.6033057851239669,
+      "median": 1.0,
+      "std": 0.48950057025113397,
+      "min": 0.0,
+      "max": 1.0,
+      "q25": 0.0,
+      "q75": 1.0,
+      "outliers_count": 0
+    },
+    "tech_support": {
+      "mean": 0.48406139315230223,
+      "median": 0.0,
+      "std": 0.500041167108527,
+      "min": 0.0,
+      "max": 1.0,
+      "q25": 0.0,
+      "q75": 1.0,
+      "outliers_count": 0
+    },
+    "online_backup": {
+      "mean": 0.4639905548996458,
+      "median": 0.0,
+      "std": 0.49899628798114204,
+      "min": 0.0,
+      "max": 1.0,
+      "q25": 0.0,
+      "q75": 1.0,
+      "outliers_count": 0
+    },
+    "internet_service": {
+      "mean": 1.255017709563164,
+      "median": 1.0,
+      "std": 0.7679423358091941,
+      "min": 0.0,
+      "max": 2.0,
+      "q25": 1.0,
+      "q75": 2.0,
+      "outliers_count": 0
+    },
+    "streaming_tv": {
+      "mean": 0.500590318772137,
+      "median": 1.0,
+      "std": 0.5002950723183954,
+      "min": 0.0,
+      "max": 1.0,
+      "q25": 0.0,
+      "q75": 1.0,
+      "outliers_count": 0
+    },
+    "streaming_movies": {
+      "mean": 0.49940968122786306,
+      "median": 0.0,
+      "std": 0.5002950723183954,
+      "min": 0.0,
+      "max": 1.0,
+      "q25": 0.0,
+      "q75": 1.0,
+      "outliers_count": 0
+    },
+    "device_protection": {
+      "mean": 0.4132231404958678,
+      "median": 0.0,
+      "std": 0.492703139786637,
+      "min": 0.0,
+      "max": 1.0,
+      "q25": 0.0,
+      "q75": 1.0,
+      "outliers_count": 0
+    },
+    "online_security": {
+      "mean": 0.4427390791027155,
+      "median": 0.0,
+      "std": 0.4970038425874278,
+      "min": 0.0,
+      "max": 1.0,
+      "q25": 0.0,
+      "q75": 1.0,
+      "outliers_count": 0
+    },
+    "senior_citizen": {
+      "mean": 0.16292798110979928,
+      "median": 0.0,
+      "std": 0.3695181492915447,
+      "min": 0.0,
+      "max": 1.0,
+      "q25": 0.0,
+      "q75": 0.0,
+      "outliers_count": 138
+    }
+  },
+  "categorical_stats": {
+    "customer_id": {
+      "unique_count": 847,
+      "top_values": {
+        "C000726": 1,
+        "C000875": 1,
+        "C000233": 1,
+        "C000498": 1,
+        "C000670": 1,
+        "C000385": 1,
+        "C000010": 1,
+        "C000091": 1,
+        "C000649": 1,
+        "C000441": 1
+      },
+      "cardinality": "high"
+    },
+    "contract_duration": {
+      "unique_count": 4,
+      "top_values": {
+        "month-to-month": 436,
+        "Unknown": 237,
+        "two year": 95,
+        "one year": 79
+      },
+      "cardinality": "low"
+    },
+    "payment_method": {
+      "unique_count": 4,
+      "top_values": {
+        "electronic check": 306,
+        "credit card": 249,
+        "bank transfer": 160,
+        "mailed check": 132
+      },
+      "cardinality": "low"
+    },
+    "customer_name": {
+      "unique_count": 847,
+      "top_values": {
+        "Customer 726": 1,
+        "Customer 875": 1,
+        "Customer 233": 1,
+        "Customer 498": 1,
+        "Customer 670": 1,
+        "Customer 385": 1,
+        "Customer 10": 1,
+        "Customer 91": 1,
+        "Customer 649": 1,
+        "Customer 441": 1
+      },
+      "cardinality": "high"
+    },
+    "last_contact": {
+      "unique_count": 91,
+      "top_values": {
+        "2025-10-07": 20,
+        "2025-11-11": 16,
+        "2025-11-02": 16,
+        "2025-12-12": 16,
+        "2025-11-01": 15,
+        "2025-10-25": 14,
+        "2025-11-28": 14,
+        "2025-11-22": 13,
+        "2025-12-09": 13,
+        "2025-12-18": 13
+      },
+      "cardinality": "high"
+    }
+  },
+  "data_freshness": {
+    "latest_record": "2025-12-28T17:54:07",
+    "hours_since_update": -5.999593953055555
+  }
+}

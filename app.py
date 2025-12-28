@@ -4,35 +4,42 @@
 # This API serves the trained AutoGluon model for real-time predictions
 # Endpoints: /predict (single), /predict_batch (multiple), /health
 
-from fastapi import FastAPI, HTTPException, BackgroundTasks
+from fastapi import FastAPI, HTTPException, BackgroundTasks, Depends, Security, Request, status
 from fastapi.responses import JSONResponse
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer, OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from pydantic import BaseModel, Field
 from typing import List, Dict, Optional
 import pandas as pd
 import numpy as np
-from datetime import datetime
+from datetime import datetime, timedelta
 import logging
 from pathlib import Path
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.util import get_remote_address
+from slowapi.errors import RateLimitExceeded
+from jose import JWTError, jwt
+from dotenv import load_dotenv
+import os
+
+# Load environment variables
+load_dotenv()
 
 # AutoGluon imports
 from autogluon.tabular import TabularPredictor
 from autogluon.core.metrics import make_scorer
 from sklearn.metrics import precision_score, recall_score
 
-# ============================================================================
-# CUSTOM METRIC FUNCTION (Must be defined before loading model)
-# ============================================================================
-def calculate_business_f1(y_true, y_pred, **kwargs):
-    """
-    Custom business F1 score function used during model training.
-    This function must be defined before loading the model.
-    """
-    p = precision_score(y_true, y_pred, pos_label=1, zero_division=0)
-    r = recall_score(y_true, y_pred, pos_label=1, zero_division=0)
-    beta = 0.5  # Recall is beta-times more important
-    if (beta**2 * p) + r == 0:
-        return 0.0
-    return (1 + beta**2) * (p * r) / ((beta**2 * p) + r)
+# Import authentication modules
+from auth.authentication import AuthManager, UserRole, User
+from auth.audit_log import get_audit_logger, AuditEventType
+
+# Import custom metrics (must be available for model unpickling)
+from custom_metrics import calculate_business_f1
+
+# Register custom metric in __main__ namespace for pickle compatibility
+import sys
+if hasattr(sys.modules.get('__main__'), '__dict__'):
+    sys.modules['__main__'].calculate_business_f1 = calculate_business_f1
 
 # ============================================================================
 # CONFIGURATION
@@ -40,6 +47,15 @@ def calculate_business_f1(y_true, y_pred, **kwargs):
 MODEL_PATH = "./autogluon_churn_model_hpo"  # Path to your trained model
 MODEL_VERSION = "v1.0"  # Update this with each model release
 CHURN_THRESHOLD = 0.5  # Default threshold (can be overridden per request)
+
+# Authentication setup
+auth_manager = AuthManager()
+audit_logger = get_audit_logger()
+security = HTTPBearer()
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
+
+# Rate limiting setup
+limiter = Limiter(key_func=get_remote_address)
 
 # Set up logging
 logging.basicConfig(
@@ -53,11 +69,82 @@ logger = logging.getLogger(__name__)
 # ============================================================================
 app = FastAPI(
     title="Churn Prediction API",
-    description="AutoGluon-powered customer churn prediction service",
+    description="AutoGluon-powered customer churn prediction service with JWT authentication",
     version=MODEL_VERSION,
     docs_url="/docs",  # Swagger UI at /docs
     redoc_url="/redoc"  # ReDoc at /redoc
 )
+
+# Add rate limiter
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+
+# ============================================================================
+# AUTHENTICATION HELPERS
+# ============================================================================
+
+async def get_current_user(credentials: HTTPAuthorizationCredentials = Security(security)) -> User:
+    """
+    Dependency to get current authenticated user from JWT token
+    """
+    credentials_exception = HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Could not validate credentials",
+        headers={"WWW-Authenticate": "Bearer"},
+    )
+    
+    try:
+        token = credentials.credentials
+        token_data = auth_manager.decode_token(token)
+        
+        if token_data is None or token_data.username is None:
+            audit_logger.log_event(
+                AuditEventType.INVALID_TOKEN,
+                username="unknown",
+                success=False,
+                error_message="Invalid token"
+            )
+            raise credentials_exception
+        
+        user = auth_manager.get_user(token_data.username)
+        if user is None:
+            raise credentials_exception
+        
+        if user.disabled:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="User account is disabled"
+            )
+        
+        # Return User object (not UserInDB with password)
+        return User(**user.dict())
+    
+    except JWTError:
+        audit_logger.log_event(
+            AuditEventType.INVALID_TOKEN,
+            username="unknown",
+            success=False,
+            error_message="JWT decode error"
+        )
+        raise credentials_exception
+
+
+def require_role(required_role: UserRole):
+    """
+    Dependency factory for role-based access control
+    """
+    async def role_checker(current_user: User = Depends(get_current_user)) -> User:
+        if not auth_manager.check_permission(current_user.role, required_role):
+            audit_logger.log_unauthorized_access(
+                username=current_user.username,
+                resource=f"role_required:{required_role.value}"
+            )
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail=f"Insufficient permissions. Required role: {required_role.value}"
+            )
+        return current_user
+    return role_checker
 
 # ============================================================================
 # LOAD MODEL ON STARTUP
@@ -80,6 +167,19 @@ async def load_model():
 # ============================================================================
 # REQUEST/RESPONSE MODELS
 # ============================================================================
+
+class LoginRequest(BaseModel):
+    """Login request model"""
+    username: str
+    password: str
+
+class TokenResponse(BaseModel):
+    """Token response model"""
+    access_token: str
+    token_type: str
+    expires_in: int
+    username: str
+    role: str
 
 class CustomerFeatures(BaseModel):
     """Input features for a single customer prediction"""
@@ -186,7 +286,9 @@ async def root():
         "version": MODEL_VERSION,
         "status": "running",
         "model_loaded": predictor is not None,
+        "authentication": "JWT token required",
         "endpoints": {
+            "login": "/token",
             "predict": "/predict",
             "predict_batch": "/predict_batch",
             "health": "/health",
@@ -194,9 +296,90 @@ async def root():
         }
     }
 
+@app.post("/token", response_model=TokenResponse, tags=["Authentication"])
+async def login(request: Request, form_data: OAuth2PasswordRequestForm = Depends()):
+    """
+    OAuth2 compatible token login endpoint
+    
+    Returns JWT access token for authenticated users
+    """
+    user = auth_manager.authenticate_user(form_data.username, form_data.password)
+    
+    if not user:
+        audit_logger.log_login(
+            username=form_data.username,
+            success=False,
+            ip_address=request.client.host,
+            error_message="Invalid credentials"
+        )
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Incorrect username or password",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    
+    # Create access token
+    from auth.authentication import create_access_token as create_token
+    token = create_token(user.username, user.role, auth_manager)
+    
+    # Log successful login
+    audit_logger.log_login(
+        username=user.username,
+        success=True,
+        ip_address=request.client.host
+    )
+    
+    return TokenResponse(
+        access_token=token.access_token,
+        token_type=token.token_type,
+        expires_in=token.expires_in,
+        username=user.username,
+        role=user.role.value
+    )
+
+@app.post("/login", response_model=TokenResponse, tags=["Authentication"])
+async def login_json(request: Request, login_data: LoginRequest):
+    """
+    Alternative JSON-based login endpoint
+    
+    Returns JWT access token for authenticated users
+    """
+    user = auth_manager.authenticate_user(login_data.username, login_data.password)
+    
+    if not user:
+        audit_logger.log_login(
+            username=login_data.username,
+            success=False,
+            ip_address=request.client.host,
+            error_message="Invalid credentials"
+        )
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Incorrect username or password"
+        )
+    
+    # Create access token
+    from auth.authentication import create_access_token as create_token
+    token = create_token(user.username, user.role, auth_manager)
+    
+    # Log successful login
+    audit_logger.log_login(
+        username=user.username,
+        success=True,
+        ip_address=request.client.host
+    )
+    
+    return TokenResponse(
+        access_token=token.access_token,
+        token_type=token.token_type,
+        expires_in=token.expires_in,
+        username=user.username,
+        role=user.role.value
+    )
+
 @app.get("/health", tags=["General"])
 async def health_check():
-    """Health check endpoint for monitoring"""
+    """Health check endpoint for monitoring (no authentication required)"""
     try:
         validate_model_loaded()
         return {
@@ -217,9 +400,13 @@ async def health_check():
         )
 
 @app.post("/predict", response_model=PredictionResponse, tags=["Predictions"])
-async def predict_single_customer(request: PredictionRequest):
+async def predict_single_customer(
+    request_data: PredictionRequest,
+    request: Request,
+    current_user: User = Depends(require_role(UserRole.VIEWER))  # Minimum role: VIEWER
+):
     """
-    Predict churn for a single customer
+    Predict churn for a single customer (requires authentication)
     
     Returns:
     - churn_probability: Probability of churn (0-1)
@@ -230,38 +417,63 @@ async def predict_single_customer(request: PredictionRequest):
         validate_model_loaded()
         
         # Convert features to DataFrame
-        customer_df = features_to_dataframe(request.features)
+        customer_df = features_to_dataframe(request_data.features)
         
         # Get prediction probabilities
         proba = predictor.predict_proba(customer_df)
         churn_prob = float(proba['Yes'].iloc[0])
         
         # Make binary prediction based on threshold
-        churn_prediction = "Yes" if churn_prob >= request.threshold else "No"
+        churn_prediction = "Yes" if churn_prob >= request_data.threshold else "No"
         
         # Get risk level
         risk_level = get_risk_level(churn_prob)
         
-        logger.info(f"Prediction for customer {request.customer_id}: {churn_prob:.3f}")
+        # Log prediction
+        audit_logger.log_prediction(
+            username=current_user.username,
+            user_role=current_user.role.value,
+            prediction_data={
+                "customer_id": request_data.customer_id,
+                "churn_probability": churn_prob,
+                "risk_level": risk_level
+            },
+            success=True,
+            ip_address=request.client.host
+        )
+        
+        logger.info(f"Prediction for customer {request_data.customer_id} by {current_user.username}: {churn_prob:.3f}")
         
         return PredictionResponse(
-            customer_id=request.customer_id,
+            customer_id=request_data.customer_id,
             churn_probability=round(churn_prob, 4),
             churn_prediction=churn_prediction,
             risk_level=risk_level,
-            threshold_used=request.threshold,
+            threshold_used=request_data.threshold,
             model_version=MODEL_VERSION,
             timestamp=datetime.now().isoformat()
         )
         
     except Exception as e:
         logger.error(f"Prediction error: {str(e)}")
+        audit_logger.log_prediction(
+            username=current_user.username,
+            user_role=current_user.role.value,
+            prediction_data={"customer_id": request_data.customer_id},
+            success=False,
+            error_message=str(e),
+            ip_address=request.client.host
+        )
         raise HTTPException(status_code=500, detail=f"Prediction failed: {str(e)}")
 
 @app.post("/predict_batch", response_model=BatchPredictionResponse, tags=["Predictions"])
-async def predict_batch_customers(request: BatchPredictionRequest):
+async def predict_batch_customers(
+    request_data: BatchPredictionRequest,
+    request: Request,
+    current_user: User = Depends(require_role(UserRole.ANALYST))  # Batch requires ANALYST role
+):
     """
-    Predict churn for multiple customers in batch
+    Predict churn for multiple customers in batch (requires ANALYST role or higher)
     
     More efficient than calling /predict multiple times
     """
@@ -269,7 +481,7 @@ async def predict_batch_customers(request: BatchPredictionRequest):
         validate_model_loaded()
         
         # Convert list of dicts to DataFrame
-        customers_df = pd.DataFrame(request.customers)
+        customers_df = pd.DataFrame(request_data.customers)
         
         # Get predictions
         proba = predictor.predict_proba(customers_df)
@@ -281,11 +493,11 @@ async def predict_batch_customers(request: BatchPredictionRequest):
         churn_summary = {"Yes": 0, "No": 0}
         
         for i, prob in enumerate(churn_probs):
-            churn_prediction = "Yes" if prob >= request.threshold else "No"
+            churn_prediction = "Yes" if prob >= request_data.threshold else "No"
             risk_level = get_risk_level(prob)
             
             # Get customer_id if provided
-            customer_id = request.customers[i].get('customer_id', f"customer_{i}")
+            customer_id = request_data.customers[i].get('customer_id', f"customer_{i}")
             
             predictions.append(PredictionResponse(
                 customer_id=customer_id,
@@ -300,7 +512,21 @@ async def predict_batch_customers(request: BatchPredictionRequest):
             risk_summary[risk_level] += 1
             churn_summary[churn_prediction] += 1
         
-        logger.info(f"Batch prediction completed for {len(customers_df)} customers")
+        # Log batch prediction
+        audit_logger.log_prediction(
+            username=current_user.username,
+            user_role=current_user.role.value,
+            prediction_data={
+                "batch_size": len(predictions),
+                "high_risk": risk_summary["HIGH"],
+                "medium_risk": risk_summary["MEDIUM"],
+                "low_risk": risk_summary["LOW"]
+            },
+            success=True,
+            ip_address=request.client.host
+        )
+        
+        logger.info(f"Batch prediction completed for {len(customers_df)} customers by {current_user.username}")
         
         return BatchPredictionResponse(
             total_customers=len(predictions),
@@ -318,11 +544,19 @@ async def predict_batch_customers(request: BatchPredictionRequest):
         
     except Exception as e:
         logger.error(f"Batch prediction error: {str(e)}")
+        audit_logger.log_prediction(
+            username=current_user.username,
+            user_role=current_user.role.value,
+            prediction_data={"batch_size": len(request_data.customers)},
+            success=False,
+            error_message=str(e),
+            ip_address=request.client.host
+        )
         raise HTTPException(status_code=500, detail=f"Batch prediction failed: {str(e)}")
 
 @app.get("/model_info", tags=["Model"])
-async def get_model_info():
-    """Get information about the loaded model"""
+async def get_model_info(current_user: User = Depends(get_current_user)):
+    """Get information about the loaded model (requires authentication)"""
     try:
         validate_model_loaded()
         
@@ -346,6 +580,20 @@ async def get_model_info():
     except Exception as e:
         logger.error(f"Model info error: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Failed to get model info: {str(e)}")
+
+# Admin endpoint for managing users
+@app.get("/admin/users", tags=["Admin"])
+async def list_users(current_user: User = Depends(require_role(UserRole.ADMIN))):
+    """List all users (ADMIN only)"""
+    return auth_manager.get_all_users()
+
+@app.get("/admin/audit/stats", tags=["Admin"])
+async def get_audit_stats(
+    days: int = 7,
+    current_user: User = Depends(require_role(UserRole.ADMIN))
+):
+    """Get audit log statistics (ADMIN only)"""
+    return audit_logger.get_statistics(days=days)
 
 # ============================================================================
 # RUN THE API

@@ -1,0 +1,22 @@
+[
+  {
+    "customer_id":"C000003",
+    "service_calls_30d":2
+  },
+  {
+    "customer_id":"C000006",
+    "service_calls_30d":1
+  },
+  {
+    "customer_id":"C000010",
+    "service_calls_30d":1
+  },
+  {
+    "customer_id":"C000011",
+    "service_calls_30d":1
+  },
+  {
+    "customer_id":"C000018",
+    "service_calls_30d":2
+  }
+]

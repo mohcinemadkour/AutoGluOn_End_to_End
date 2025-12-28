@@ -1,0 +1,37 @@
+[
+  {
+    "churn_id":1,
+    "customer_id":"C000473",
+    "churn_date":"2028-05-01T12:41:26.907",
+    "churn_reason":"moved",
+    "created_at":"2025-12-28T12:41:26.930"
+  },
+  {
+    "churn_id":2,
+    "customer_id":"C000214",
+    "churn_date":"2023-09-26T12:41:26.907",
+    "churn_reason":"service",
+    "created_at":"2025-12-28T12:41:26.930"
+  },
+  {
+    "churn_id":3,
+    "customer_id":"C000153",
+    "churn_date":"2024-06-14T12:41:26.907",
+    "churn_reason":"other",
+    "created_at":"2025-12-28T12:41:26.930"
+  },
+  {
+    "churn_id":4,
+    "customer_id":"C000360",
+    "churn_date":"2026-01-10T12:41:26.907",
+    "churn_reason":"price",
+    "created_at":"2025-12-28T12:41:26.930"
+  },
+  {
+    "churn_id":5,
+    "customer_id":"C000398",
+    "churn_date":"2025-06-16T12:41:26.907",
+    "churn_reason":"price",
+    "created_at":"2025-12-28T12:41:26.930"
+  }
+]

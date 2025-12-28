@@ -1,0 +1,33 @@
+
+================================================================================
+DATA QUALITY REPORT - CUSTOMER_DATA
+================================================================================
+Generated: 2025-12-28 11:54:33
+
+📊 DATASET OVERVIEW
+────────────────────────────────────────────────────────────────────────────────
+Rows:               847
+Columns:            19
+Memory Usage:       0.32 MB
+Duplicate Rows:     0 (0.00%)
+
+📈 DATA QUALITY SCORE
+────────────────────────────────────────────────────────────────────────────────
+Overall Score:      80.0/100
+Validation Status:  ❌ FAILED
+Total Checks:       10
+Failed Checks:      2
+
+🔍 MISSING VALUES
+────────────────────────────────────────────────────────────────────────────────
+Total Missing:      0
+Columns Affected:   0
+
+❌ VALIDATION ERRORS (2)
+────────────────────────────────────────────────────────────────────────────────
+  • contract_duration_values: 847 issues (100.0%)
+    Contract duration must be Monthly, Yearly, or Two-Year
+  • payment_method_values: 847 issues (100.0%)
+    Payment method must be valid
+
+================================================================================

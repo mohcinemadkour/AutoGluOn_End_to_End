@@ -1,0 +1,52 @@
+[
+  {
+    "contract_id":1,
+    "customer_id":"C000001",
+    "contract_type":"month-to-month",
+    "start_date":"2023-08-14T11:28:58.788",
+    "end_date":null,
+    "auto_renew":1,
+    "created_at":"2025-12-28T11:28:58.819",
+    "updated_at":"2025-12-28T11:28:58.819"
+  },
+  {
+    "contract_id":2,
+    "customer_id":"C000002",
+    "contract_type":"month-to-month",
+    "start_date":"2023-02-18T11:28:58.788",
+    "end_date":null,
+    "auto_renew":1,
+    "created_at":"2025-12-28T11:28:58.819",
+    "updated_at":"2025-12-28T11:28:58.819"
+  },
+  {
+    "contract_id":3,
+    "customer_id":"C000003",
+    "contract_type":"one year",
+    "start_date":"2024-07-14T11:28:58.788",
+    "end_date":"2025-07-14T11:28:58.788",
+    "auto_renew":0,
+    "created_at":"2025-12-28T11:28:58.819",
+    "updated_at":"2025-12-28T11:28:58.819"
+  },
+  {
+    "contract_id":4,
+    "customer_id":"C000004",
+    "contract_type":"month-to-month",
+    "start_date":"2024-05-13T11:28:58.788",
+    "end_date":null,
+    "auto_renew":1,
+    "created_at":"2025-12-28T11:28:58.819",
+    "updated_at":"2025-12-28T11:28:58.819"
+  },
+  {
+    "contract_id":5,
+    "customer_id":"C000005",
+    "contract_type":"one year",
+    "start_date":"2024-03-30T11:28:58.788",
+    "end_date":"2025-03-30T11:28:58.788",
+    "auto_renew":1,
+    "created_at":"2025-12-28T11:28:58.819",
+    "updated_at":"2025-12-28T11:28:58.819"
+  }
+]

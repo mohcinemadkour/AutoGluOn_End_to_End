@@ -1,0 +1,100 @@
+{
+  "generated_at": "2025-12-28T11:28:58.911118",
+  "tables": {
+    "customers": {
+      "rows": 1000,
+      "columns": [
+        "customer_id",
+        "customer_name",
+        "signup_date",
+        "status",
+        "senior_citizen",
+        "last_contact_date",
+        "created_at",
+        "updated_at"
+      ]
+    },
+    "billing": {
+      "rows": 1000,
+      "columns": [
+        "billing_id",
+        "customer_id",
+        "monthly_charges",
+        "total_charges",
+        "billing_cycle",
+        "last_payment_date",
+        "created_at",
+        "updated_at"
+      ]
+    },
+    "service_calls": {
+      "rows": 1228,
+      "columns": [
+        "customer_id",
+        "call_date",
+        "issue_type",
+        "resolution_time_hours",
+        "created_at",
+        "service_call_id"
+      ]
+    },
+    "service_calls_30d": {
+      "rows": 249,
+      "columns": [
+        "customer_id",
+        "service_calls_30d"
+      ]
+    },
+    "contracts": {
+      "rows": 1000,
+      "columns": [
+        "contract_id",
+        "customer_id",
+        "contract_type",
+        "start_date",
+        "end_date",
+        "auto_renew",
+        "created_at",
+        "updated_at"
+      ]
+    },
+    "customer_features": {
+      "rows": 1000,
+      "columns": [
+        "feature_id",
+        "customer_id",
+        "paperless_billing_score",
+        "tech_support_score",
+        "online_backup_score",
+        "streaming_tv_score",
+        "streaming_movies_score",
+        "device_protection_score",
+        "online_security_score",
+        "internet_service_score",
+        "created_at",
+        "updated_at"
+      ]
+    },
+    "payment_methods": {
+      "rows": 1000,
+      "columns": [
+        "payment_id",
+        "customer_id",
+        "payment_method",
+        "is_auto_pay",
+        "created_at",
+        "updated_at"
+      ]
+    },
+    "churn_history": {
+      "rows": 150,
+      "columns": [
+        "churn_id",
+        "customer_id",
+        "churn_date",
+        "churn_reason",
+        "created_at"
+      ]
+    }
+  }
+}

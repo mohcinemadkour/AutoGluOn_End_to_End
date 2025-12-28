@@ -15,6 +15,103 @@ from autogluon.core.metrics import make_scorer
 from sklearn.metrics import precision_score, recall_score
 import json
 from pathlib import Path
+import yaml
+from dotenv import load_dotenv
+
+# Load environment variables
+load_dotenv()
+
+# Import authentication modules
+from auth.authentication import AuthManager, UserRole, StreamlitAuthConfig
+from auth.audit_log import get_audit_logger, AuditEventType
+
+# Initialize authentication and audit logging
+auth_manager = AuthManager()
+audit_logger = get_audit_logger()
+
+# ============================================================================
+# AUTHENTICATION
+# ============================================================================
+def check_authentication():
+    """Check if user is authenticated"""
+    if "authenticated" not in st.session_state:
+        st.session_state.authenticated = False
+        st.session_state.username = None
+        st.session_state.user_role = None
+    
+    return st.session_state.authenticated
+
+def login_page():
+    """Display login page"""
+    st.title("🔐 Churn Prediction Dashboard - Login")
+    
+    col1, col2, col3 = st.columns([1, 2, 1])
+    
+    with col2:
+        st.markdown("### Please Login to Continue")
+        
+        with st.form("login_form"):
+            username = st.text_input("Username")
+            password = st.text_input("Password", type="password")
+            submit = st.form_submit_button("Login")
+            
+            if submit:
+                user = auth_manager.authenticate_user(username, password)
+                
+                if user:
+                    st.session_state.authenticated = True
+                    st.session_state.username = user.username
+                    st.session_state.user_role = user.role
+                    st.session_state.user_full_name = user.full_name
+                    
+                    # Log successful login
+                    audit_logger.log_login(username, success=True)
+                    
+                    st.success(f"Welcome {user.full_name or user.username}!")
+                    st.rerun()
+                else:
+                    # Log failed login
+                    audit_logger.log_login(username, success=False, 
+                                         error_message="Invalid credentials")
+                    st.error("Invalid username or password")
+        
+        # Display default credentials for demo
+        with st.expander("📋 Demo Credentials"):
+            st.markdown("""
+            **Admin Account:**
+            - Username: `admin`
+            - Password: `admin123`
+            - Role: Full access to all features
+            
+            **Analyst Account:**
+            - Username: `analyst`
+            - Password: `analyst123`
+            - Role: Can view and make predictions
+            
+            **Viewer Account:**
+            - Username: `viewer`
+            - Password: `viewer123`
+            - Role: View-only access
+            """)
+
+def logout():
+    """Handle user logout"""
+    username = st.session_state.get("username", "unknown")
+    audit_logger.log_logout(username)
+    
+    st.session_state.authenticated = False
+    st.session_state.username = None
+    st.session_state.user_role = None
+    st.session_state.user_full_name = None
+    st.rerun()
+
+def check_permission(required_role: UserRole) -> bool:
+    """Check if current user has required permission"""
+    if not st.session_state.authenticated:
+        return False
+    
+    current_role = st.session_state.user_role
+    return auth_manager.check_permission(current_role, required_role)
 
 # ============================================================================
 # CUSTOM METRIC FUNCTION (Must be defined before loading model)
@@ -291,17 +388,37 @@ def get_retention_recommendation(row):
 # DASHBOARD LAYOUT
 # ============================================================================
 
-# Sidebar
-st.sidebar.title("🎯 Churn Prediction Dashboard")
-st.sidebar.markdown("---")
+def main_dashboard():
+    """Main dashboard content (only shown when authenticated)"""
+    
+    # Sidebar
+    st.sidebar.title("🎯 Churn Prediction Dashboard")
+    st.sidebar.markdown("---")
+    
+    # Show user info in sidebar
+    st.sidebar.markdown(f"""
+    **👤 User:** {st.session_state.user_full_name or st.session_state.username}  
+    **🔑 Role:** {st.session_state.user_role.value}
+    """)
+    st.sidebar.markdown("---")
 
-# Date selector
-st.sidebar.subheader("📅 Date Range")
-date_range = st.sidebar.date_input(
-    "Select date range",
-    value=(datetime.now() - timedelta(days=30), datetime.now()),
-    max_value=datetime.now()
-)
+    # Date selector
+    st.sidebar.subheader("📅 Date Range")
+    date_range = st.sidebar.date_input(
+        "Select date range",
+        value=(datetime.now() - timedelta(days=30), datetime.now()),
+        max_value=datetime.now()
+    )
+
+# ============================================================================
+# LOAD MODEL AND DATA (Only run when authenticated)
+# ============================================================================
+# Load model
+predictor = load_model()
+
+if predictor is None:
+    st.error("Failed to load model. Please check model path and try again.")
+    st.stop()
 
 # Risk filter
 st.sidebar.subheader("🎚️ Filters")
@@ -742,9 +859,45 @@ col4.metric(
 
 # Footer
 st.markdown("---")
-st.markdown("""
-<div style='text-align: center; color: #666; padding: 20px;'>
-    <p>💡 <b>Need Help?</b> Contact the Data Science team for questions about predictions or campaign strategies.</p>
-    <p>🔄 Dashboard refreshes automatically. Use the sidebar refresh button to update data manually.</p>
-</div>
-""", unsafe_allow_html=True)
+
+# User info and logout button
+col1, col2, col3 = st.columns([2, 1, 1])
+
+with col1:
+    st.markdown("""
+    <div style='text-align: left; color: #666; padding: 20px;'>
+        <p>💡 <b>Need Help?</b> Contact the Data Science team for questions about predictions or campaign strategies.</p>
+        <p>🔄 Dashboard refreshes automatically. Use the sidebar refresh button to update data manually.</p>
+    </div>
+    """, unsafe_allow_html=True)
+
+with col2:
+    if st.session_state.authenticated:
+        st.markdown(f"""
+        <div style='text-align: right; padding: 20px;'>
+            <p>👤 <b>{st.session_state.user_full_name or st.session_state.username}</b></p>
+            <p>🔑 Role: {st.session_state.user_role.value}</p>
+        </div>
+        """, unsafe_allow_html=True)
+
+with col3:
+    if st.session_state.authenticated:
+        if st.button("🚪 Logout", use_container_width=True):
+            logout()
+
+# ============================================================================
+# MAIN APP ENTRY POINT
+# ============================================================================
+if __name__ == "__main__":
+    # Check authentication first
+    if not check_authentication():
+        login_page()
+    else:
+        # Log data access
+        audit_logger.log_data_access(
+            username=st.session_state.username,
+            user_role=st.session_state.user_role.value,
+            action="view_dashboard",
+            resource="churn_dashboard"
+        )
+        # Continue with main dashboard (code below runs when authenticated)

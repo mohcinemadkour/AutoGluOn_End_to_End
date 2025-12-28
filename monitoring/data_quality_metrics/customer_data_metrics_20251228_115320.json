@@ -1,0 +1,29 @@
+{
+  "timestamp": "2025-12-28T11:53:20.008722",
+  "dataset_name": "customer_data",
+  "row_count": 847,
+  "column_count": 19,
+  "columns": [
+    "customer_id",
+    "tenure_months",
+    "monthly_charges",
+    "total_charges",
+    "service_calls",
+    "contract_duration",
+    "paperless_billing",
+    "tech_support",
+    "online_backup",
+    "payment_method",
+    "internet_service",
+    "streaming_tv",
+    "streaming_movies",
+    "device_protection",
+    "online_security",
+    "senior_citizen",
+    "customer_name",
+    "extracted_at",
+    "last_contact"
+  ],
+  "basic_stats": {
+    "memory_usage_mb": 0.3159933090209961,
+    "duplicate_rows": 
