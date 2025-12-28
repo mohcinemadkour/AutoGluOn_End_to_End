@@ -19,9 +19,19 @@ pandas>=2.0.0
 numpy>=1.24.0
 scikit-learn>=1.3.0
 
+# Database (SingleStore)
+pymysql>=1.1.0
+sqlalchemy>=2.0.0
+schedule>=1.2.0
+
+# Data Quality
+great-expectations>=0.18.0
+scipy>=1.11.0
+
 # Utilities
 python-multipart>=0.0.6  # For file uploads if needed
 aiofiles>=23.0.0         # For async file operations
+python-dotenv>=1.0.0     # Environment variables
 
 # Optional: Monitoring and Logging
 python-json-logger>=2.0.7
