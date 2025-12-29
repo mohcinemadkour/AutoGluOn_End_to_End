@@ -4,6 +4,12 @@
 # This API serves the trained AutoGluon model for real-time predictions
 # Endpoints: /predict (single), /predict_batch (multiple), /health
 
+import sys
+import os
+
+# Add current directory to Python path (for Render deployment)
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+
 from fastapi import FastAPI, HTTPException, BackgroundTasks, Depends, Security, Request, status
 from fastapi.responses import JSONResponse
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer, OAuth2PasswordBearer, OAuth2PasswordRequestForm
@@ -19,7 +25,6 @@ from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
 from jose import JWTError, jwt
 from dotenv import load_dotenv
-import os
 
 # Load environment variables
 load_dotenv()

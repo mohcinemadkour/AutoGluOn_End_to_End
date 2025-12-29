@@ -4,6 +4,12 @@
 # Business-facing dashboard for churn prediction monitoring and actions
 # Run with: streamlit run dashboard.py
 
+import sys
+import os
+
+# Add current directory to Python path (for Render deployment)
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+
 import streamlit as st
 import pandas as pd
 import numpy as np
