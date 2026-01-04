@@ -898,6 +898,7 @@ if __name__ == "__main__":
     # Check authentication first
     if not check_authentication():
         login_page()
+        st.stop()  # Stop execution until user logs in
     else:
         # Log data access
         audit_logger.log_data_access(
